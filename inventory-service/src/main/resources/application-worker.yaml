@@ -1,0 +1,22 @@
+# Q7 worker 프로파일 — InventoryEvent projection 전용.
+# 외부 노출 서버 모두 비활성, Spring Batch Job 활성화.
+
+spring:
+  main:
+    web-application-type: none
+
+  # gRPC server starter 비활성
+  # (net.devh starter는 grpc.server.port=-1 이면 서버 안 띄움)
+  batch:
+    job:
+      enabled: true                # worker는 기동 시 Job 자동 실행
+      name: inventoryEventProjectionJob
+
+grpc:
+  server:
+    port: -1
+
+logging:
+  level:
+    dev.ktcloud.black.inventory.service.worker: INFO
+    org.springframework.batch: INFO
