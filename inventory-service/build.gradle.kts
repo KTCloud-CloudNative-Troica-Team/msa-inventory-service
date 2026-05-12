@@ -19,7 +19,7 @@ dependencies {
     // (:inventory가 :inventory-event를 implementation 한 transitive는 compile classpath 미노출)
     implementation(project(":inventory-event"))
 
-    implementation("com.troica.msa:common:0.3.0")
+    implementation("com.troica.msa:common:0.3.1")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

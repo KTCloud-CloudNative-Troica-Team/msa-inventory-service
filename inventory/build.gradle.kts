@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     // common-libs v0.3.0
-    implementation("com.troica.msa:common:0.3.0")
+    implementation("com.troica.msa:common:0.3.1")
     // JitPack client-redis (D2 결정)
     implementation("com.github.kanei0415:ktcloud-msa-client-redis:v1.0.2")
     // 같은 레포 내 서브모듈
