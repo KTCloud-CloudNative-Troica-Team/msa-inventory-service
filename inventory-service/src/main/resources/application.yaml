@@ -1,0 +1,72 @@
+# Base 설정. 환경별 application-{dev,prod,worker}.yaml이 덮어쓴다.
+spring:
+  application:
+    name: inventory-service
+
+  datasource:
+    url: jdbc:postgresql://${INVENTORY_DB_HOST:localhost}:${INVENTORY_DB_PORT:7004}/${INVENTORY_DB_NAME:inventory_db}
+    username: ${INVENTORY_DB_USERNAME:inventory-service}
+    password: ${INVENTORY_DB_PASSWORD:inventory-service}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:false}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:7005}
+      password: ${REDIS_PASSWORD:inventory-service}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:7003}
+    consumer:
+      group-id: inventory-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    # 토픽명 — Q5 결정: SPEC 표준 (`order.pending` consumer, `order.inventory-reserved` producer)
+    topic:
+      order-pending:            ${KAFKA_TOPIC_ORDER_PENDING:order.pending}                       # consumer
+      order-inventory-reserved: ${KAFKA_TOPIC_ORDER_INVENTORY_RESERVED:order.inventory-reserved} # producer
+
+  # Q7 — Spring Batch worker. api 프로파일에서는 자동 Job 실행 막음 (worker만 실행).
+  batch:
+    job:
+      enabled: false       # 기본 비활성 — worker 프로파일에서 활성화
+    jdbc:
+      initialize-schema: always  # Batch metadata 테이블 자동 생성 (PoC 단순화)
+
+server:
+  port: ${SERVER_PORT:8003}
+
+grpc:
+  server:
+    port: ${GRPC_SERVER_PORT:9003}
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health, info, prometheus
+      path-mapping:
+        health: healthz
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+# Q7 worker 설정 (시뮬레이션). 5초 마다 미처리 InventoryEvent 청크를 projection.
+inventory:
+  worker:
+    event-projection:
+      poll-interval-ms: 5000
+      initial-delay-ms: 10000
+      chunk-size: 50
