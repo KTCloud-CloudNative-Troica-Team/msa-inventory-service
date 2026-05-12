@@ -1,38 +1,18 @@
 # syntax=docker/dockerfile:1.7
 
-# ===== Stage 1: build =====
-FROM eclipse-temurin:21-jdk AS build
-WORKDIR /app
+# R-27 (a): 호스트의 `./gradlew build`가 이미 테스트 + bootJar 완료 → Docker는
+# packaging만 담당 (~1.5분 절약). 기존 3-stage 빌드 (build → layers → runtime)
+# 에서 build stage 제거.
+#
+# 사전 조건: ci.yml의 build-test step이 inventory-service/build/libs/*.jar를 생성.
 
-COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
-COPY gradle gradle
-COPY inventory/build.gradle.kts inventory/
-COPY inventory-service/build.gradle.kts inventory-service/
-COPY inventory-event/build.gradle.kts inventory-event/
-RUN chmod +x gradlew
-
-# GitHub Packages 인증 (common-libs 의존성 해결). JitPack client-redis는 인증 불필요.
-ARG GPR_USER
-ARG GPR_TOKEN
-RUN if [ -n "$GPR_USER" ] && [ -n "$GPR_TOKEN" ]; then \
-      mkdir -p /root/.gradle && \
-      echo "gpr.user=$GPR_USER" > /root/.gradle/gradle.properties && \
-      echo "gpr.token=$GPR_TOKEN" >> /root/.gradle/gradle.properties ; \
-    fi
-RUN ./gradlew dependencies --no-daemon || true
-
-COPY inventory/src inventory/src
-COPY inventory-service/src inventory-service/src
-COPY inventory-event/src inventory-event/src
-RUN ./gradlew :inventory-service:bootJar --no-daemon -x test
-
-# ===== Stage 2: extract layers =====
+# ===== Stage 1: layered jar extraction =====
 FROM eclipse-temurin:21-jre-alpine AS layers
 WORKDIR /app
-COPY --from=build /app/inventory-service/build/libs/*.jar app.jar
+COPY inventory-service/build/libs/*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
-# ===== Stage 3: runtime =====
+# ===== Stage 2: runtime =====
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
