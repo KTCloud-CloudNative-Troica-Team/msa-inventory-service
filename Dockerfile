@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ===== Stage 1: build =====
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
 COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
